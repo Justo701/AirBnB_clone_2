@@ -1,29 +1,27 @@
-#!/usr/bin/python3
-"""A module for Fabric script that generates a .tgz archive."""
-import os
-from datetime import datetime
-from fabric.api import local, runs_once
+#!/usr/bin/env bash
+# Bash script that sets up web servers for the deployment of web_static
+sudo apt-get update
+sudo apt-get -y install nginx
+sudo ufw allow 'Nginx HTTP'
 
+sudo mkdir -p /data/
+sudo mkdir -p /data/web_static/
+sudo mkdir -p /data/web_static/releases/
+sudo mkdir -p /data/web_static/shared/
+sudo mkdir -p /data/web_static/releases/test/
+sudo touch /data/web_static/releases/test/index.html
+sudo echo "<html>
+  <head>
+  </head>
+  <body>
+    Holberton School
+  </body>
+</html>" | sudo tee /data/web_static/releases/test/index.html
 
-@runs_once
-def do_pack():
-    """Archives the static files."""
-    if not os.path.isdir("versions"):
-        os.mkdir("versions")
-    d_time = datetime.now()
-    output = "versions/web_static_{}{}{}{}{}{}.tgz".format(
-        d_time.year,
-        d_time.month,
-        d_time.day,
-        d_time.hour,
-        d_time.minute,
-        d_time.second
-    )
-    try:
-        print("Packing web_static to {}".format(output))
-        local("tar -cvzf {} web_static".format(output))
-        size = os.stat(output).st_size
-        print("web_static packed: {} -> {} Bytes".format(output, size))
-    except Exception:
-        output = None
-    return output
+sudo ln -s -f /data/web_static/releases/test/ /data/web_static/current
+
+sudo chown -R ubuntu:ubuntu /data/
+
+sudo sed -i '/listen 80 default_server/a location /hbnb_static { alias /data/web_static/current/;}' /etc/nginx/sites-enabled/default
+
+sudo service nginx restart
